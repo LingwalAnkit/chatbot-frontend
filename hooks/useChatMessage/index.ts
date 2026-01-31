@@ -3,7 +3,10 @@ import { ChatMessage } from "@/types/chat";
 import { useChatService } from "@/services/useChatService";
 
 function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -12,7 +15,8 @@ function generateId(): string {
 function parseBackendResponse(rawResponse: string): string {
   try {
     const data = JSON.parse(rawResponse);
-    const responseText = data.response || data.answer || data.content || JSON.stringify(data);
+    const responseText =
+      data.response || data.answer || data.content || JSON.stringify(data);
     return responseText.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   } catch {
     return rawResponse;
@@ -22,7 +26,8 @@ function parseBackendResponse(rawResponse: string): string {
 export function useChatMessage(initialMessages: ChatMessage[] = []) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
-  const { sendMessage, uploadFile, sendVoiceChat, synthesizeSpeech } = useChatService();
+  const { sendMessage, uploadFile, sendVoiceChat, synthesizeSpeech } =
+    useChatService();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -39,7 +44,7 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
     file: File | null,
     ttsEnabled?: boolean,
     filenameOverride?: string,
-    explicitDocId?: string
+    explicitDocId?: string,
   ) => {
     const displayFilename = file ? file.name : filenameOverride;
 
@@ -82,8 +87,8 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
         prev.map((m) =>
           m.id === botMsgId
             ? { ...m, text: botResponseText, isLoading: false }
-            : m
-        )
+            : m,
+        ),
       );
 
       // Generate TTS if enabled
@@ -91,15 +96,15 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
         console.log("[TTS DEBUG] TTS enabled, synthesizing bot response");
         try {
           const ttsResult = await synthesizeSpeech(botResponseText);
-          console.log("[TTS DEBUG] TTS synthesis complete, updating message with audio URL");
+          console.log(
+            "[TTS DEBUG] TTS synthesis complete, updating message with audio URL",
+          );
 
           // Update message with audio URL
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === botMsgId
-                ? { ...m, audioUrl: ttsResult.audio_url }
-                : m
-            )
+              m.id === botMsgId ? { ...m, audioUrl: ttsResult.audio_url } : m,
+            ),
           );
         } catch (ttsErr) {
           console.error("[TTS DEBUG] TTS synthesis failed:", ttsErr);
@@ -114,15 +119,18 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
             ? {
                 ...m,
                 text: "Error: Something went wrong. Please try again.",
-                isLoading: false
+                isLoading: false,
               }
-            : m
-        )
+            : m,
+        ),
       );
     }
   };
 
-  const sendVoiceMessage = async (audioBlob: Blob, voiceResponseEnabled: boolean = true) => {
+  const sendVoiceMessage = async (
+    audioBlob: Blob,
+    voiceResponseEnabled: boolean = true,
+  ) => {
     const tempUserMsgId = generateId();
     addMessage({
       id: tempUserMsgId,
@@ -141,21 +149,23 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
     });
 
     try {
-      console.log("[Voice] Sending voice message with voiceResponseEnabled:", voiceResponseEnabled);
+      console.log(
+        "[Voice] Sending voice message with voiceResponseEnabled:",
+        voiceResponseEnabled,
+      );
       const response = await sendVoiceChat(audioBlob, voiceResponseEnabled);
 
       setMessages((prev) =>
         prev.map((m) =>
-            m.id === tempUserMsgId
+          m.id === tempUserMsgId
             ? { ...m, text: response.transcribed_text || "🎤 [Audio Message]" }
-            : m
-        )
+            : m,
+        ),
       );
 
       console.log("[TTS DEBUG] Setting bot message with audio URL:", {
         audio_url: response.audio_url,
         has_audio_url: !!response.audio_url,
-        errors: response.errors
       });
 
       setMessages((prev) =>
@@ -165,24 +175,32 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
                 ...m,
                 text: response.chat_response,
                 audioUrl: response.audio_url,
-                isLoading: false
+                isLoading: false,
               }
-            : m
-        )
+            : m,
+        ),
       );
     } catch (err) {
       console.error("Voice Chat Error:", err);
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === botMsgId 
-          ? { ...m, text: "Error processing voice message.", isLoading: false } 
-          : m
-        )
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: "Error processing voice message.",
+                isLoading: false,
+              }
+            : m,
+        ),
       );
     }
   };
 
-  const restoreSession = (userText: string, botText: string, audioUrl?: string) => {
+  const restoreSession = (
+    userText: string,
+    botText: string,
+    audioUrl?: string,
+  ) => {
     const userMsgId = generateId();
     const botMsgId = generateId();
     const now = Date.now();
@@ -221,13 +239,13 @@ export function useChatMessage(initialMessages: ChatMessage[] = []) {
 
   const setDocumentId = (id: string) => setActiveDocumentId(id);
 
-  return { 
-    messages, 
-    sendUserMessage, 
-    sendVoiceMessage, 
-    containerRef, 
+  return {
+    messages,
+    sendUserMessage,
+    sendVoiceMessage,
+    containerRef,
     regenerateMessage,
     setDocumentId,
-    restoreSession
+    restoreSession,
   };
 }
